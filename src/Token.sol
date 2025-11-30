@@ -65,7 +65,7 @@ contract Token is IERC20, IMintableToken, IDividends {
     require(_allowances[from][msg.sender] >= value, "Insufficient allowance");
     require(balanceOf[from] >= value, "Insufficient balance");
     
-    _allowances[from][msg.sender] = _allowances[from][msg.sender]-value;
+    _allowances[from][msg.sender] = _allowances[from][msg.sender] - value;
     _transfer(from, to, value);
     
     return true;
@@ -81,8 +81,8 @@ contract Token is IERC20, IMintableToken, IDividends {
     _saveDividends(from);
     _saveDividends(to);
     
-    balanceOf[from] = balanceOf[from]-value;
-    balanceOf[to] = balanceOf[to]+value;
+    balanceOf[from] = balanceOf[from] - value;
+    balanceOf[to] = balanceOf[to] + value;
     
     // Update holder list
     if (balanceOf[from] == 0 && isHolder[from]) {
@@ -100,8 +100,8 @@ contract Token is IERC20, IMintableToken, IDividends {
     
     _saveDividends(msg.sender);
     
-    balanceOf[msg.sender] = balanceOf[msg.sender]+msg.value;
-    totalSupply = totalSupply +msg.value;
+    balanceOf[msg.sender] = balanceOf[msg.sender] + msg.value;
+    totalSupply = totalSupply + msg.value;
     
     if (!isHolder[msg.sender]) {
       _addHolder(msg.sender);
@@ -116,7 +116,7 @@ contract Token is IERC20, IMintableToken, IDividends {
     _saveDividends(msg.sender);
     
     balanceOf[msg.sender] = 0;
-    totalSupply = totalSupply-amount;
+    totalSupply = totalSupply - amount;
     
     if (isHolder[msg.sender]) {
       _removeHolder(msg.sender);
@@ -138,15 +138,17 @@ contract Token is IERC20, IMintableToken, IDividends {
   
   function recordDividend() external payable override {
     require(msg.value > 0, "Must send ether for dividend");
-    require(totalSupply > 0, "No tokens in circulation");
+    
+    uint256 supply = totalSupply;
+    require(supply > 0, "No tokens in circulation");
     
     // O(1) dividend distribution using points system
-    totalDividendPoints = totalDividendPoints+((msg.value*POINTS_MULTIPLIER) / totalSupply);
+    totalDividendPoints = totalDividendPoints + (msg.value * POINTS_MULTIPLIER / supply);
   }
   
   function getWithdrawableDividend(address payee) external view override returns (uint256) {
     uint256 newDividends = _calculateNewDividends(payee);
-    return savedDividends[payee]+newDividends;
+    return savedDividends[payee] + newDividends;
   }
   
   function withdrawDividend(address payable dest) external override nonReentrant {
@@ -169,7 +171,7 @@ contract Token is IERC20, IMintableToken, IDividends {
   function _saveDividends(address account) internal {
     uint256 newDividends = _calculateNewDividends(account);
     if (newDividends > 0) {
-      savedDividends[account] = savedDividends[account]+newDividends;
+      savedDividends[account] = savedDividends[account] + newDividends;
     }
     // Update checkpoint - future dividends calculated from here with new balance
     lastDividendPoints[account] = totalDividendPoints;
@@ -177,8 +179,8 @@ contract Token is IERC20, IMintableToken, IDividends {
   
   // Calculate dividends earned since last checkpoint using CURRENT balance
   function _calculateNewDividends(address account) internal view returns (uint256) {
-    uint256 pointsDiff = totalDividendPoints-lastDividendPoints[account];
-    return (balanceOf[account] *pointsDiff)/POINTS_MULTIPLIER;
+    uint256 pointsDiff = totalDividendPoints - lastDividendPoints[account];
+    return balanceOf[account] * pointsDiff / POINTS_MULTIPLIER;
   }
   
   // Helper functions for holder tracking
